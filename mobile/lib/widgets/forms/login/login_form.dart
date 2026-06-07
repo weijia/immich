@@ -25,6 +25,7 @@ import 'package:immich_mobile/providers/view_intent/view_intent_handler.provider
 import 'package:immich_mobile/providers/websocket.provider.dart';
 import 'package:immich_mobile/repositories/permission.repository.dart';
 import 'package:immich_mobile/routing/router.dart';
+import 'package:immich_mobile/services/server_discovery.service.dart';
 import 'package:immich_mobile/utils/provider_utils.dart';
 import 'package:immich_mobile/utils/url_helper.dart';
 import 'package:immich_mobile/utils/version_compatibility.dart';
@@ -80,6 +81,8 @@ class LoginForm extends HookConsumerWidget {
     final isPasswordLoginEnable = useState<bool>(false);
     final oAuthButtonLabel = useState<String>('OAuth');
     final logoAnimationController = useAnimationController(duration: const Duration(seconds: 60))..repeat();
+    final isScanning = useState<bool>(false);
+    final discoveredServers = useState<List<DiscoveredServer>>([]);
     final serverInfo = ref.watch(serverInfoProvider);
     final warningMessage = useState<String?>(null);
     final loginFormKey = GlobalKey<FormState>();
@@ -102,6 +105,37 @@ class LoginForm extends HookConsumerWidget {
         );
       } catch (error) {
         warningMessage.value = 'Error checking version compatibility';
+      }
+    }
+
+    /// Scan the local network for Immich servers via UDP broadcast
+    void _scanForServers(BuildContext context) async {
+      isScanning.value = true;
+      discoveredServers.value = [];
+
+      try {
+        final discovery = ServerDiscoveryService();
+        final servers = await discovery.discoverServers();
+
+        if (servers.isEmpty) {
+          ImmichToast.show(
+            context: context,
+            msg: 'No Immich servers found on the local network',
+            toastType: ToastType.info,
+          );
+        } else {
+          discoveredServers.value = servers;
+          // Auto-select the first discovered server
+          serverEndpointController.text = servers.first.url;
+        }
+      } catch (e) {
+        ImmichToast.show(
+          context: context,
+          msg: 'Scan failed: ${e.toString()}',
+          toastType: ToastType.error,
+        );
+      } finally {
+        isScanning.value = false;
       }
     }
 
@@ -413,6 +447,102 @@ class LoginForm extends HookConsumerWidget {
                     onSubmit: (_) => form.submit(),
                   ),
                 ),
+                // Scan LAN for Immich servers
+                ImmichTextButton(
+                  labelText: isScanning.value
+                      ? 'Scanning...'
+                      : 'Scan LAN servers',
+                  icon: Icons.wifi_find,
+                  variant: ImmichVariant.ghost,
+                  onPressed: isScanning.value ? null : () => _scanForServers(context),
+                ),
+                if (discoveredServers.value.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: Text(
+                            'Discovered servers:',
+                            style: context.textTheme.labelMedium?.copyWith(
+                              color: context.isDarkTheme ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                        ),
+                        ...discoveredServers.value.map((server) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4.0),
+                          child: InkWell(
+                            onTap: () {
+                              serverEndpointController.text = server.url;
+                              if (serverEndpointController.text.isNotEmpty) {
+                                getServerAuthSettings();
+                              }
+                            },
+                            borderRadius: const BorderRadius.all(Radius.circular(8)),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: context.isDarkTheme
+                                    ? const Color(0xFF2A2A2A)
+                                    : const Color(0xFFF0F0F0),
+                                borderRadius: const BorderRadius.all(Radius.circular(8)),
+                                border: Border.all(
+                                  color: context.isDarkTheme
+                                      ? const Color(0xFF3A3A3A)
+                                      : const Color(0xFFE0E0E0),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.dns_rounded,
+                                    size: 20,
+                                    color: context.isDarkTheme ? Colors.white70 : Colors.black54,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          server.name,
+                                          style: context.textTheme.bodyMedium,
+                                        ),
+                                        Text(
+                                          server.url,
+                                          style: context.textTheme.bodySmall?.copyWith(
+                                            color: context.isDarkTheme ? Colors.white54 : Colors.black38,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (server.version.isNotEmpty)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: context.isDarkTheme
+                                            ? const Color(0xFF1A3A1A)
+                                            : const Color(0xFFE8F5E9),
+                                        borderRadius: const BorderRadius.all(Radius.circular(4)),
+                                      ),
+                                      child: Text(
+                                        'v${server.version}',
+                                        style: context.textTheme.labelSmall?.copyWith(
+                                          color: context.isDarkTheme ? Colors.green.shade300 : Colors.green.shade700,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        )),
+                      ],
+                    ),
+                  ),
                 ImmichTextButton(
                   labelText: 'settings'.t(context: context),
                   icon: Icons.settings,
