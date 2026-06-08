@@ -1,0 +1,88 @@
+name: Build Android and Upload to SFTP
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-latest
+    if: github.repository == 'weijia/immich'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+          cache: true
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'zulu'
+
+      - name: Restore Gradle cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            ~/.android/sdk
+          key: gradle-${{ runner.os }}-${{ hashFiles('mobile/android/**/*.gradle*', 'mobile/android/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Create Keystore
+        run: echo "${{ secrets.KEY_JKS }}" | base64 -d > android/key.jks
+
+      - name: Install Flutter dependencies
+        working-directory: mobile
+        run: flutter pub get
+
+      - name: Generate translations
+        working-directory: mobile
+        run: |
+          mise run codegen:translation
+
+      - name: Generate platform APIs
+        working-directory: mobile
+        run: |
+          mise run codegen:pigeon
+
+      - name: Build Android APK
+        working-directory: mobile
+        env:
+          ALIAS: ${{ secrets.ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+          KEYSTORE_PATH: ../android/key.jks
+        run: |
+          flutter build apk --release \
+            --build-number=${{ github.run_number }}
+
+      - name: Prepare upload directory
+        run: |
+          mkdir -p upload
+          cp mobile/build/app/outputs/flutter-apk/*.apk upload/
+          ls -la upload/
+
+      - name: Upload APK to SFTP
+        uses: weijia/action-upload-sftp@master
+        with:
+          sftp-host: ${{ secrets.SFTP_HOST }}
+          sftp-port: ${{ secrets.SFTP_PORT }}
+          sftp-username: ${{ secrets.SFTP_USERNAME }}
+          sftp-password: ${{ secrets.SFTP_PASSWORD }}
+          source-path: ./upload/
+          remote-path: /home/github/apps/immich/
+          cleanup-old-files: 'true'
+          max-keep-files: 5
