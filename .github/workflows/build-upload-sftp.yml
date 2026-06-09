@@ -42,7 +42,9 @@ jobs:
         uses: android-actions/setup-android@v3
 
       - name: Create Keystore
-        run: echo "${{ secrets.KEY_JKS }}" | base64 -d > android/key.jks
+        run: |
+          mkdir -p mobile/android
+          echo "${{ secrets.KEY_JKS }}" | base64 -d > mobile/android/key.jks
 
       - name: Install Flutter dependencies
         working-directory: mobile
