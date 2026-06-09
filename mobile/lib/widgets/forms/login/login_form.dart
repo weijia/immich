@@ -454,7 +454,8 @@ class LoginForm extends HookConsumerWidget {
                       : 'Scan LAN servers',
                   icon: Icons.wifi_find,
                   variant: ImmichVariant.ghost,
-                  onPressed: isScanning.value ? null : () { _scanForServers(context); },
+                  disabled: isScanning.value,
+                  onPressed: () { _scanForServers(context); },
                 ),
                 if (discoveredServers.value.isNotEmpty)
                   Padding(
