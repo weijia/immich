@@ -109,7 +109,7 @@ class LoginForm extends HookConsumerWidget {
     }
 
     /// Scan the local network for Immich servers via UDP broadcast
-    void _scanForServers(BuildContext context) async {
+    Future<void> _scanForServers(BuildContext context) async {
       isScanning.value = true;
       discoveredServers.value = [];
 
