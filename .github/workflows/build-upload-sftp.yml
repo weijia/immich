@@ -7,7 +7,42 @@ on:
   workflow_dispatch:
 
 jobs:
+  generate-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_name: ${{ steps.version.outputs.VERSION_NAME }}
+      version_code: ${{ steps.version.outputs.VERSION_CODE }}
+      build_type: ${{ steps.version.outputs.BUILD_TYPE }}
+      build_tag: ${{ steps.version.outputs.BUILD_TAG }}
+      build_datetime: ${{ steps.version.outputs.BUILD_DATETIME }}
+      build_timezone: ${{ steps.version.outputs.BUILD_TIMEZONE }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate version
+        id: version
+        run: |
+          chmod +x scripts/generate_version.sh
+          source <(bash scripts/generate_version.sh | while IFS='=' read -r key val; do echo "$key=$val"; done)
+          echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_OUTPUT
+          echo "VERSION_CODE=${VERSION_CODE}" >> $GITHUB_OUTPUT
+          echo "BUILD_TYPE=${BUILD_TYPE}" >> $GITHUB_OUTPUT
+          echo "BUILD_TAG=${BUILD_TAG}" >> $GITHUB_OUTPUT
+          echo "BUILD_DATETIME=${BUILD_DATETIME}" >> $GITHUB_OUTPUT
+          echo "BUILD_TIMEZONE=${BUILD_TIMEZONE}" >> $GITHUB_OUTPUT
+          echo "--- Version Info ---"
+          echo "Version Name : ${VERSION_NAME}"
+          echo "Version Code : ${VERSION_CODE}"
+          echo "Build Type   : ${BUILD_TYPE}"
+          echo "Build Tag    : ${BUILD_TAG}"
+          echo "Build Time   : ${BUILD_DATETIME} ${BUILD_TIMEZONE}"
+
   build-and-upload:
+    needs: generate-version
     runs-on: ubuntu-latest
     if: github.repository == 'weijia/immich'
 
@@ -73,12 +108,16 @@ jobs:
           KEYSTORE_PATH: ../android/key.jks
         run: |
           flutter build apk --release \
-            --build-number=${{ github.run_number }}
+            --build-name=${{ needs.generate-version.outputs.version_name }} \
+            --build-number=${{ needs.generate-version.outputs.version_code }}
 
       - name: Prepare upload directory
         run: |
           mkdir -p upload
-          cp mobile/build/app/outputs/flutter-apk/*.apk upload/
+          # 使用版本号作为文件名
+          VERSION="${{ needs.generate-version.outputs.version_name }}"
+          cp mobile/build/app/outputs/flutter-apk/app-release.apk "upload/immich-${VERSION}.apk"
+          echo "--- Upload Files ---"
           ls -la upload/
 
       - name: Upload APK to SFTP
@@ -91,4 +130,24 @@ jobs:
           source-path: ./upload/
           remote-path: /home/github/apps/immich/
           cleanup-old-files: 'true'
-          max-keep-files: 5
+          max-keep-files: 10
+
+  build-summary:
+    needs: [generate-version, build-and-upload]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Build Summary
+        run: |
+          echo "## Build Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version Name | \`${{ needs.generate-version.outputs.version_name }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Version Code | \`${{ needs.generate-version.outputs.version_code }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Type | \`${{ needs.generate-version.outputs.build_type }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Git Tag | \`${{ needs.generate-version.outputs.build_tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Build Time | \`${{ needs.generate-version.outputs.build_datetime }}\` \`${{ needs.generate-version.outputs.build_timezone }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ github.sha }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Branch | \`${{ github.ref_name }}\` |" >> $GITHUB_STEP_SUMMARY
