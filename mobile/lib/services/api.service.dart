@@ -104,11 +104,15 @@ class ApiService {
       url = sanitizeUrl(wellKnownEndpoint);
     }
 
+    // Ensure URL ends with /api for the endpoint
+    if (!url.endsWith('/api')) {
+      url += '/api';
+    }
+
     if (!await _isEndpointAvailable(url)) {
       throw ApiException(503, "Server is not reachable");
     }
 
-    // Otherwise, assume the URL provided is the api endpoint
     return url;
   }
 

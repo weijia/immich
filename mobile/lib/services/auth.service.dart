@@ -79,8 +79,20 @@ class AuthService {
     return isValid;
   }
 
-  Future<LoginResponse> login(String email, String password) {
-    return _authApiRepository.login(email, password);
+  Future<LoginResponse> login(String email, String password) async {
+    _log.info('[AuthService] login() called with email: $email');
+    _log.info('[AuthService] basePath: ${_apiService.apiClient.basePath}');
+    
+    try {
+      _log.info('[AuthService] Calling _authApiRepository.login()');
+      final result = await _authApiRepository.login(email, password);
+      _log.info('[AuthService] Login successful: userId=${result.userId}');
+      return result;
+    } catch (e, stackTrace) {
+      _log.severe('[AuthService] Login failed: $e');
+      _log.severe('[AuthService] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   /// Performs user logout operation by making a server request and clearing local data.

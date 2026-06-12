@@ -10,12 +10,12 @@ jobs:
   generate-version:
     runs-on: ubuntu-latest
     outputs:
-      version_name: ${{ steps.version.outputs.VERSION_NAME }}
-      version_code: ${{ steps.version.outputs.VERSION_CODE }}
-      build_type: ${{ steps.version.outputs.BUILD_TYPE }}
-      build_tag: ${{ steps.version.outputs.BUILD_TAG }}
-      build_datetime: ${{ steps.version.outputs.BUILD_DATETIME }}
-      build_timezone: ${{ steps.version.outputs.BUILD_TIMEZONE }}
+      version_name: ${{ steps.version.outputs.version_name }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      build_type: ${{ steps.version.outputs.build_type }}
+      build_tag: ${{ steps.version.outputs.build_tag }}
+      build_datetime: ${{ steps.version.outputs.build_datetime }}
+      build_timezone: ${{ steps.version.outputs.build_timezone }}
 
     steps:
       - name: Checkout code
@@ -27,19 +27,11 @@ jobs:
         id: version
         run: |
           chmod +x scripts/generate_version.sh
-          source <(bash scripts/generate_version.sh | while IFS='=' read -r key val; do echo "$key=$val"; done)
-          echo "VERSION_NAME=${VERSION_NAME}" >> $GITHUB_OUTPUT
-          echo "VERSION_CODE=${VERSION_CODE}" >> $GITHUB_OUTPUT
-          echo "BUILD_TYPE=${BUILD_TYPE}" >> $GITHUB_OUTPUT
-          echo "BUILD_TAG=${BUILD_TAG}" >> $GITHUB_OUTPUT
-          echo "BUILD_DATETIME=${BUILD_DATETIME}" >> $GITHUB_OUTPUT
-          echo "BUILD_TIMEZONE=${BUILD_TIMEZONE}" >> $GITHUB_OUTPUT
+          # 直接运行脚本，输出到 GITHUB_OUTPUT
+          bash scripts/generate_version.sh >> $GITHUB_OUTPUT
+          # 显示版本信息
           echo "--- Version Info ---"
-          echo "Version Name : ${VERSION_NAME}"
-          echo "Version Code : ${VERSION_CODE}"
-          echo "Build Type   : ${BUILD_TYPE}"
-          echo "Build Tag    : ${BUILD_TAG}"
-          echo "Build Time   : ${BUILD_DATETIME} ${BUILD_TIMEZONE}"
+          cat $GITHUB_OUTPUT
 
   build-and-upload:
     needs: generate-version

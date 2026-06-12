@@ -142,30 +142,42 @@ class LoginForm extends HookConsumerWidget {
     /// Fetch the server login credential and enables oAuth login if necessary
     /// Returns true if successful, false otherwise
     Future<void> getServerAuthSettings() async {
+      log.info('[LoginForm] getServerAuthSettings() called');
       final sanitizeServerUrl = sanitizeUrl(serverEndpointController.text);
+      log.info('[LoginForm] Sanitized server URL: $sanitizeServerUrl');
       final serverUrl = punycodeEncodeUrl(sanitizeServerUrl);
+      log.info('[LoginForm] Punycode encoded URL: $serverUrl');
 
       // Guard empty URL
       if (serverUrl.isEmpty) {
+        log.warning('[LoginForm] Server URL is empty');
         ImmichToast.show(context: context, msg: "login_form_server_empty".tr(), toastType: ToastType.error);
       }
 
       try {
+        log.info('[LoginForm] Calling validateServerUrl');
         final endpoint = await ref.read(authProvider.notifier).validateServerUrl(serverUrl);
+        log.info('[LoginForm] Validated endpoint: $endpoint');
 
         // Fetch and load server config and features
+        log.info('[LoginForm] Calling getServerInfo');
         await ref.read(serverInfoProvider.notifier).getServerInfo();
 
         final serverInfo = ref.read(serverInfoProvider);
         final features = serverInfo.serverFeatures;
         final config = serverInfo.serverConfig;
+        
+        log.info('[LoginForm] Server features: passwordLogin=${features.passwordLogin}, oauthEnabled=${features.oauthEnabled}');
+        log.info('[LoginForm] Server config: oauthButtonText=${config.oauthButtonText}');
 
         isOauthEnable.value = features.oauthEnabled;
         isPasswordLoginEnable.value = features.passwordLogin;
         oAuthButtonLabel.value = config.oauthButtonText.isNotEmpty ? config.oauthButtonText : 'OAuth';
 
         serverEndpoint.value = endpoint;
+        log.info('[LoginForm] Server auth settings loaded successfully');
       } on ApiException catch (e) {
+        log.severe('[LoginForm] ApiException: ${e.message}');
         ImmichToast.show(
           context: context,
           msg: e.message ?? 'login_form_api_exception'.tr(),
@@ -175,6 +187,7 @@ class LoginForm extends HookConsumerWidget {
         isOauthEnable.value = false;
         isPasswordLoginEnable.value = true;
       } on HandshakeException {
+        log.severe('[LoginForm] HandshakeException');
         ImmichToast.show(
           context: context,
           msg: 'login_form_handshake_exception'.tr(),
@@ -184,6 +197,7 @@ class LoginForm extends HookConsumerWidget {
         isOauthEnable.value = false;
         isPasswordLoginEnable.value = true;
       } catch (e) {
+        log.severe('[LoginForm] Unexpected error: $e');
         ImmichToast.show(
           context: context,
           msg: 'login_form_server_error'.tr(),
@@ -279,17 +293,27 @@ class LoginForm extends HookConsumerWidget {
     bool isSyncRemoteDeletionsMode() => Platform.isAndroid && Store.get(StoreKey.manageLocalMediaAndroid, false);
 
     login() async {
+      log.info('[LoginForm] Login button pressed');
+      log.info('[LoginForm] Email: ${emailController.text}');
+      log.info('[LoginForm] Server endpoint from controller: ${serverEndpointController.text}');
+      
       TextInput.finishAutofillContext();
 
       // Invalidate all api repository provider instance to take into account new access token
       invalidateAllApiRepositoryProviders(ref);
+      
+      log.info('[LoginForm] API repository providers invalidated');
 
       try {
+        log.info('[LoginForm] Calling authProvider.notifier.login()');
         final result = await ref.read(authProvider.notifier).login(emailController.text, passwordController.text);
+        log.info('[LoginForm] Login result received: userId=${result.userId}, isAdmin=${result.isAdmin}');
 
         if (result.shouldChangePassword && !result.isAdmin) {
+          log.info('[LoginForm] User needs to change password, navigating to ChangePasswordRoute');
           unawaited(context.pushRoute(const ChangePasswordRoute()));
         } else {
+          log.info('[LoginForm] Login successful, navigating to main screen');
           await ref.read(galleryPermissionNotifier.notifier).requestGalleryPermission();
           if (isSyncRemoteDeletionsMode()) {
             await getManageMediaPermission();
@@ -299,7 +323,9 @@ class LoginForm extends HookConsumerWidget {
           unawaited(context.router.replaceAll([const TabShellRoute()]));
           return;
         }
-      } catch (error) {
+      } catch (error, stackTrace) {
+        log.severe('[LoginForm] Login failed with error: $error');
+        log.severe('[LoginForm] Stack trace: $stackTrace');
         ImmichToast.show(
           context: context,
           msg: "login_form_failed_login".tr(),

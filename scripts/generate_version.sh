@@ -1,5 +1,5 @@
 #!/bin/bash
-# 版本号生成脚本（参考 flutter-build-release skill）
+# 版本号生成脚本
 # 规则：
 #   - 正好在 tag 上：x.y.z
 #   - tag 后有新提交：x.y.z-YYYYMMDD.HHMMSSCST
@@ -9,13 +9,6 @@ set -e
 
 # 获取最近的 tag（排除 build 日期类型的 tag）
 TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
-
-BUILD_TYPE=""
-VERSION_NAME=""
-VERSION_CODE=""
-BUILD_TAG=""
-BUILD_DATETIME=""
-BUILD_TIMEZONE="CST"
 
 # 东八区构建时间
 BUILD_DATETIME=$(TZ='Asia/Shanghai' date '+%Y%m%d.%H%M%S')
@@ -52,10 +45,10 @@ else
     BUILD_TYPE="datetime"
 fi
 
-# 安全输出
-echo "VERSION_NAME=${VERSION_NAME}"
-echo "VERSION_CODE=${VERSION_CODE}"
-echo "BUILD_TYPE=${BUILD_TYPE}"
-echo "BUILD_TAG=${BUILD_TAG}"
-echo "BUILD_DATETIME=${BUILD_DATETIME}"
-echo "BUILD_TIMEZONE=${BUILD_TIMEZONE}"
+# 输出到 GitHub Actions（使用小写变量名）
+echo "version_name=${VERSION_NAME}"
+echo "version_code=${VERSION_CODE}"
+echo "build_type=${BUILD_TYPE}"
+echo "build_tag=${BUILD_TAG}"
+echo "build_datetime=${BUILD_DATETIME}"
+echo "build_timezone=CST"

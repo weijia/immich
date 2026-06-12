@@ -81,9 +81,24 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<LoginResponse> login(String email, String password) async {
-    final response = await _authService.login(email, password);
-    await saveAuthInfo(accessToken: response.accessToken);
-    return response;
+    _log.info('[AuthNotifier] login() called with email: $email');
+    _log.info('[AuthNotifier] Current basePath: ${_apiService.apiClient.basePath}');
+    
+    try {
+      _log.info('[AuthNotifier] Calling _authService.login()');
+      final response = await _authService.login(email, password);
+      _log.info('[AuthNotifier] Login response received: accessToken=${response.accessToken}, userId=${response.userId}');
+      
+      _log.info('[AuthNotifier] Calling saveAuthInfo()');
+      await saveAuthInfo(accessToken: response.accessToken);
+      _log.info('[AuthNotifier] saveAuthInfo() completed');
+      
+      return response;
+    } catch (e, stackTrace) {
+      _log.severe('[AuthNotifier] Login error: $e');
+      _log.severe('[AuthNotifier] Stack trace: $stackTrace');
+      rethrow;
+    }
   }
 
   Future<void> logout() async {
