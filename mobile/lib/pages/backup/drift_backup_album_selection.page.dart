@@ -99,31 +99,30 @@ class _DriftBackupAlbumSelectionPageState extends ConsumerState<DriftBackupAlbum
           await _handlePagePopped();
 
           final user = ref.read(currentUserProvider);
-          if (user == null) {
-            return;
-          }
-
-          final isBackupEnabled = SettingsRepository.instance.appConfig.backup.enabled;
-          await ref.read(driftBackupProvider.notifier).getBackupStatus(user.id);
-          final currentTotalAssetCount = ref.read(driftBackupProvider.select((p) => p.totalCount));
-          final totalChanged = currentTotalAssetCount != _initialTotalAssetCount;
-          final backupNotifier = ref.read(driftBackupProvider.notifier);
-          final backgroundSync = ref.read(backgroundSyncProvider);
-          final nativeSync = ref.read(nativeSyncApiProvider);
-          if (totalChanged) {
-            // Waits for hashing to be cancelled before starting a new one
-            unawaited(nativeSync.cancelHashing().whenComplete(() => backgroundSync.hashAssets()));
-            if (isBackupEnabled) {
-              backupNotifier.stopForegroundBackup();
-              unawaited(
-                backgroundSync.syncRemote().then((success) {
-                  if (success) {
-                    return backupNotifier.startForegroundBackup(user.id);
-                  } else {
-                    Logger('DriftBackupAlbumSelectionPage').warning('Background sync failed, not starting backup');
-                  }
-                }),
-              );
+          // 无论 user 是否为 null，都应该允许返回
+          if (user != null) {
+            final isBackupEnabled = SettingsRepository.instance.appConfig.backup.enabled;
+            await ref.read(driftBackupProvider.notifier).getBackupStatus(user.id);
+            final currentTotalAssetCount = ref.read(driftBackupProvider.select((p) => p.totalCount));
+            final totalChanged = currentTotalAssetCount != _initialTotalAssetCount;
+            final backupNotifier = ref.read(driftBackupProvider.notifier);
+            final backgroundSync = ref.read(backgroundSyncProvider);
+            final nativeSync = ref.read(nativeSyncApiProvider);
+            if (totalChanged) {
+              // Waits for hashing to be cancelled before starting a new one
+              unawaited(nativeSync.cancelHashing().whenComplete(() => backgroundSync.hashAssets()));
+              if (isBackupEnabled) {
+                backupNotifier.stopForegroundBackup();
+                unawaited(
+                  backgroundSync.syncRemote().then((success) {
+                    if (success) {
+                      return backupNotifier.startForegroundBackup(user.id);
+                    } else {
+                      Logger('DriftBackupAlbumSelectionPage').warning('Background sync failed, not starting backup');
+                    }
+                  }),
+                );
+              }
             }
           }
 
