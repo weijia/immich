@@ -4,7 +4,9 @@
 #   - 正好在 tag 上：x.y.z
 #   - tag 后有新提交：x.y.z-YYYYMMDD.HHMMSSCST
 #   - 无 tag：0.0.0-YYYYMMDD.HHMMSSCST
-# 版本号中不含 + 号（Android 不允许）
+# versionCode 规则：
+#   - 基于时间戳，确保始终递增
+#   - 格式：YYMMDDHHMM（10位，最大约 2100000000）
 set -e
 
 # 获取最近的 tag（排除 build 日期类型的 tag）
@@ -12,6 +14,15 @@ TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
 
 # 东八区构建时间
 BUILD_DATETIME=$(TZ='Asia/Shanghai' date '+%Y%m%d.%H%M%S')
+
+# versionCode 基于时间戳，确保始终递增
+# 格式：YYMMDDHHMM（如 2606141200 = 2026-06-14 12:00）
+TIMESTAMP=$(TZ='Asia/Shanghai' date '+%y%m%d%H%M')
+VERSION_CODE="$TIMESTAMP"
+# 确保不超过 Android 限制 2100000000
+if [ "$VERSION_CODE" -gt 2100000000 ]; then
+    VERSION_CODE=$((VERSION_CODE % 2100000000))
+fi
 
 if [ -n "$TAG" ]; then
     # 有 tag，使用 tag + 构建时间戳
@@ -28,20 +39,11 @@ if [ -n "$TAG" ]; then
         VERSION_NAME="${BASE_VERSION}"
     fi
 
-    VERSION_CODE="1"
     BUILD_TYPE="tag"
     BUILD_TAG="$TAG"
 else
     # 无 tag：0.0.0-20260609.143000CST
     VERSION_NAME="0.0.0-${BUILD_DATETIME}CST"
-
-    # 用时间戳作为 versionCode（取后 9 位，确保不超过 Android 限制 2100000000）
-    TIMESTAMP=$(TZ='Asia/Shanghai' date '+%Y%m%d%H%M%S')
-    VERSION_CODE=$(echo "$TIMESTAMP" | sed 's/^.*\(.\{9\}\)$/\1/')
-    if [ "$VERSION_CODE" -gt 2100000000 ]; then
-        VERSION_CODE=$((VERSION_CODE % 2100000000))
-    fi
-
     BUILD_TYPE="datetime"
 fi
 
