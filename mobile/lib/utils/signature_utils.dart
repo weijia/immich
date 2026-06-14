@@ -33,7 +33,7 @@ class SignatureUtils {
     String receivedSignature,
   ) {
     _log.info('[SignatureUtils] Verifying signature');
-    _log.debug('[SignatureUtils] serverId=$serverId, serverUrl=$serverUrl, timestamp=$timestamp, nonce=$challengeNonce');
+    _log.fine('[SignatureUtils] serverId=$serverId, serverUrl=$serverUrl, timestamp=$timestamp, nonce=$challengeNonce');
     
     // Check timestamp is within ±30 seconds
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
@@ -46,11 +46,11 @@ class SignatureUtils {
     
     // Compute expected signature
     final dataToSign = '$serverId|$serverUrl|$timestamp|$challengeNonce';
-    _log.debug('[SignatureUtils] Data to sign: $dataToSign');
+    _log.fine('[SignatureUtils] Data to sign: $dataToSign');
     
     final expectedSignature = computeHmacSha256Hex(serverToken, dataToSign);
-    _log.debug('[SignatureUtils] Expected signature: $expectedSignature');
-    _log.debug('[SignatureUtils] Received signature: $receivedSignature');
+    _log.fine('[SignatureUtils] Expected signature: $expectedSignature');
+    _log.fine('[SignatureUtils] Received signature: $receivedSignature');
     
     // Compare signatures (case-insensitive)
     final matches = expectedSignature.toLowerCase() == receivedSignature.toLowerCase();

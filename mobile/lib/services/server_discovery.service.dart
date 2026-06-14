@@ -73,7 +73,7 @@ class ServerDiscoveryService {
             packetCount++;
             final response = utf8.decode(datagram.data);
             _log.info('[ServerDiscoveryService] Received packet #$packetCount from ${datagram.address.address}:${datagram.port}');
-            _log.debug('[ServerDiscoveryService] Raw response: $response');
+            _log.fine('[ServerDiscoveryService] Raw response: $response');
 
             final server = _parseResponse(response, savedServer, challengeNonce);
             if (server != null) {
@@ -82,7 +82,7 @@ class ServerDiscoveryService {
                 results.add(server);
                 _log.info('[ServerDiscoveryService] Added server to results (total: ${results.length})');
               } else {
-                _log.debug('[ServerDiscoveryService] Duplicate server, skipping');
+                _log.fine('[ServerDiscoveryService] Duplicate server, skipping');
               }
             } else {
               _log.warning('[ServerDiscoveryService] Failed to parse response');
@@ -147,7 +147,7 @@ class ServerDiscoveryService {
       
       final jsonStr = data.substring(responsePrefix.length);
       final json = jsonDecode(jsonStr) as Map<String, dynamic>;
-      _log.debug('[ServerDiscoveryService] JSON keys: ${json.keys.toList()}');
+      _log.fine('[ServerDiscoveryService] JSON keys: ${json.keys.toList()}');
       
       // Check for v3.0 response (has signature)
       final signature = json['signature'] as String?;
