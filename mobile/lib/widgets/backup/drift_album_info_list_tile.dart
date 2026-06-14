@@ -9,9 +9,11 @@ import 'package:immich_mobile/providers/backup/backup_album.provider.dart';
 import 'package:immich_mobile/providers/haptic_feedback.provider.dart';
 import 'package:immich_mobile/routing/router.dart';
 import 'package:immich_mobile/widgets/common/immich_toast.dart';
+import 'package:logging/logging.dart';
 
 class DriftAlbumInfoListTile extends HookConsumerWidget {
   final LocalAlbum album;
+  final _log = Logger('DriftAlbumInfoListTile');
 
   const DriftAlbumInfoListTile({super.key, required this.album});
 
@@ -19,6 +21,8 @@ class DriftAlbumInfoListTile extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final bool isSelected = album.backupSelection == BackupSelection.selected;
     final bool isExcluded = album.backupSelection == BackupSelection.excluded;
+    
+    _log.debug('[DriftAlbumInfoListTile] build: album=${album.name}, isSelected=$isSelected, isExcluded=$isExcluded, backupSelection=${album.backupSelection}');
 
     buildTileColor() {
       if (isSelected) {
@@ -73,10 +77,13 @@ class DriftAlbumInfoListTile extends HookConsumerWidget {
         tileColor: buildTileColor(),
         contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         onTap: () {
+          _log.info('[DriftAlbumInfoListTile] onTap: album=${album.name}, isSelected=$isSelected');
           ref.read(hapticFeedbackProvider.notifier).selectionClick();
           if (isSelected) {
+            _log.info('[DriftAlbumInfoListTile] deselecting album');
             ref.read(backupAlbumProvider.notifier).deselectAlbum(album);
           } else {
+            _log.info('[DriftAlbumInfoListTile] selecting album');
             ref.read(backupAlbumProvider.notifier).selectAlbum(album);
           }
         },
