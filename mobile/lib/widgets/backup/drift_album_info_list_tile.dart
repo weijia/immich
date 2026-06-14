@@ -13,16 +13,16 @@ import 'package:logging/logging.dart';
 
 class DriftAlbumInfoListTile extends HookConsumerWidget {
   final LocalAlbum album;
-  final _log = Logger('DriftAlbumInfoListTile');
 
   const DriftAlbumInfoListTile({super.key, required this.album});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final _log = Logger('DriftAlbumInfoListTile');
     final bool isSelected = album.backupSelection == BackupSelection.selected;
     final bool isExcluded = album.backupSelection == BackupSelection.excluded;
     
-    _log.debug('[DriftAlbumInfoListTile] build: album=${album.name}, isSelected=$isSelected, isExcluded=$isExcluded, backupSelection=${album.backupSelection}');
+    _log.fine('[DriftAlbumInfoListTile] build: album=${album.name}, isSelected=$isSelected, isExcluded=$isExcluded, backupSelection=${album.backupSelection}');
 
     buildTileColor() {
       if (isSelected) {

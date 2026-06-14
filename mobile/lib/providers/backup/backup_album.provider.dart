@@ -22,7 +22,7 @@ class BackupAlbumNotifier extends StateNotifier<List<LocalAlbum>> {
     state = await _localAlbumService.getAll(sortBy: {SortLocalAlbumsBy.assetCount});
     _log.info('[BackupAlbumNotifier] getAll() returned ${state.length} albums');
     for (final album in state) {
-      _log.debug('[BackupAlbumNotifier] Album: ${album.name}, backupSelection=${album.backupSelection}');
+      _log.fine('[BackupAlbumNotifier] Album: ${album.name}, backupSelection=${album.backupSelection}');
     }
   }
 
