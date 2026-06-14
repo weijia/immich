@@ -5,8 +5,8 @@
 #   - tag 后有新提交：x.y.z-YYYYMMDD.HHMMSSCST
 #   - 无 tag：0.0.0-YYYYMMDD.HHMMSSCST
 # versionCode 规则：
-#   - 基于时间戳，确保始终递增
-#   - 格式：YYMMDDHHMM（10位，最大约 2100000000）
+#   - 使用时间戳后 9 位，确保始终递增
+#   - 格式：取 YYYYMMDDHHMMSS 的后 9 位
 set -e
 
 # 获取最近的 tag（排除 build 日期类型的 tag）
@@ -15,10 +15,10 @@ TAG=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || true)
 # 东八区构建时间
 BUILD_DATETIME=$(TZ='Asia/Shanghai' date '+%Y%m%d.%H%M%S')
 
-# versionCode 基于时间戳，确保始终递增
-# 格式：YYMMDDHHMM（如 2606141200 = 2026-06-14 12:00）
-TIMESTAMP=$(TZ='Asia/Shanghai' date '+%y%m%d%H%M')
-VERSION_CODE="$TIMESTAMP"
+# versionCode 基于时间戳后 9 位，确保始终递增
+# 格式：取 YYYYMMDDHHMMSS 的后 9 位（如 614082314）
+TIMESTAMP=$(TZ='Asia/Shanghai' date '+%Y%m%d%H%M%S')
+VERSION_CODE=$(echo "$TIMESTAMP" | sed 's/^.*\(.\{9\}\)$/\1/')
 # 确保不超过 Android 限制 2100000000
 if [ "$VERSION_CODE" -gt 2100000000 ]; then
     VERSION_CODE=$((VERSION_CODE % 2100000000))
@@ -32,10 +32,10 @@ if [ -n "$TAG" ]; then
     COMMIT_COUNT=$(git rev-list "${TAG}..HEAD" --count 2>/dev/null || echo "0")
 
     if [ "$COMMIT_COUNT" -gt 0 ]; then
-        # tag 之后有新提交：1.1.0-20260609.143000CST
+        # tag 之后有新提交：0.1.0-20260614.113723CST
         VERSION_NAME="${BASE_VERSION}-${BUILD_DATETIME}CST"
     else
-        # 正好在 tag 上：1.1.0
+        # 正好在 tag 上：0.1.0
         VERSION_NAME="${BASE_VERSION}"
     fi
 
