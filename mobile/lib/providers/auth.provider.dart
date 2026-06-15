@@ -150,6 +150,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Get the deviceid from the store if it exists, otherwise generate a new one
     String deviceId = Store.tryGet(StoreKey.deviceId) ?? await FlutterUdid.consistentUdid;
+    
+    // Save deviceId immediately after login, before any API calls
+    // This ensures deviceId is available for upload operations
+    await Store.put(StoreKey.deviceId, deviceId);
+    _log.info("[AuthNotifier] deviceId saved: $deviceId");
 
     UserDto? user = _userService.tryGetMyUser();
 
@@ -161,7 +166,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // If the user information is successfully retrieved, update the store
         // Due to the flow of the code, this will always happen on first login
         user = serverUser;
-        await Store.put(StoreKey.deviceId, deviceId);
       }
     } on ApiException catch (error, stackTrace) {
       if (error.code == 401) {
