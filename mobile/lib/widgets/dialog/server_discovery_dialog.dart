@@ -3,6 +3,7 @@ import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:immich_mobile/extensions/build_context_extensions.dart';
 import 'package:immich_mobile/extensions/theme_extensions.dart';
 import 'package:immich_mobile/providers/saved_server.provider.dart';
+import 'package:immich_mobile/domain/models/server/saved_server.model.dart';
 import 'package:immich_mobile/services/server_discovery.service.dart';
 import 'package:logging/logging.dart';
 
@@ -28,7 +29,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
         children: [
           const Icon(Icons.search),
           const SizedBox(width: 8),
-          Text(context.l10n.server_discovery_title ?? '发现服务器'),
+          const Text('发现服务器'),
         ],
       ),
       content: SizedBox(
@@ -50,7 +51,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     Text(
-                      context.l10n.server_discovery_searching ?? '正在搜索网络中的 Immich 服务器...',
+                      '正在搜索网络中的 Immich 服务器...',
                       style: context.textTheme.bodyMedium,
                     ),
                   ],
@@ -87,7 +88,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
-                  context.l10n.server_discovery_none_found ?? '未发现服务器',
+                  '未发现服务器',
                   style: context.textTheme.bodyMedium?.copyWith(
                     color: context.colorScheme.onSurfaceSecondary,
                   ),
@@ -99,7 +100,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                context.l10n.server_discovery_manual_hint ?? '未找到服务器？请手动输入服务器地址：',
+                '未找到服务器？请手动输入服务器地址：',
                 style: context.textTheme.bodySmall?.copyWith(
                   color: context.colorScheme.onSurfaceSecondary,
                 ),
@@ -111,7 +112,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: Text(context.l10n.cancel_button ?? '取消'),
+          child: const Text('取消'),
         ),
         if (!discoveryState.isDiscovering)
           ElevatedButton.icon(
@@ -120,7 +121,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
               savedServer: savedServer,
             ),
             icon: const Icon(Icons.refresh),
-            label: Text(context.l10n.server_discovery_refresh ?? '重新搜索'),
+            label: const Text('重新搜索'),
           ),
       ],
     );

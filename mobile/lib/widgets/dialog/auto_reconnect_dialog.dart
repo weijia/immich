@@ -28,7 +28,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
         children: [
           const Icon(Icons.sync_problem),
           const SizedBox(width: 8),
-          Text(context.l10n.auto_reconnect_title ?? '重新连接服务器'),
+          const Text('重新连接服务器'),
         ],
       ),
       content: SizedBox(
@@ -45,7 +45,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.l10n.auto_reconnect_server_changed ?? '原服务器 IP 地址已变化',
+                      '原服务器 IP 地址已变化',
                       style: context.textTheme.titleSmall,
                     ),
                     const SizedBox(height: 8),
@@ -74,7 +74,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
                     const LinearProgressIndicator(),
                     const SizedBox(height: 12),
                     Text(
-                      context.l10n.auto_reconnect_searching ?? '正在自动搜索新地址...',
+                      '正在自动搜索新地址...',
                       style: context.textTheme.bodyMedium,
                     ),
                   ],
@@ -96,7 +96,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          context.l10n.auto_reconnect_found ?? '找到服务器！',
+                          '找到服务器！',
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.primary,
                             fontWeight: FontWeight.bold,
@@ -128,7 +128,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          context.l10n.auto_reconnect_not_found ?? '未找到服务器',
+                          '未找到服务器',
                           style: context.textTheme.bodyMedium?.copyWith(
                             color: context.colorScheme.error,
                           ),
@@ -137,7 +137,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      context.l10n.auto_reconnect_manual_hint ?? '请手动输入服务器地址',
+                      '请手动输入服务器地址',
                       style: context.textTheme.bodySmall?.copyWith(
                         color: context.colorScheme.onSurfaceSecondary,
                       ),
@@ -163,7 +163,7 @@ class AutoReconnectDialog extends HookConsumerWidget {
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          child: Text(context.l10n.cancel_button ?? '取消'),
+          child: const Text('取消'),
         ),
         if (!reconnectState.isSearching && reconnectState.newUrl != null)
           ElevatedButton.icon(
@@ -174,13 +174,13 @@ class AutoReconnectDialog extends HookConsumerWidget {
               Navigator.of(context).pop(true);
             },
             icon: const Icon(Icons.link),
-            label: Text(context.l10n.auto_reconnect_connect ?? '自动连接'),
+            label: const Text('自动连接'),
           ),
         if (!reconnectState.isSearching && reconnectState.notFound)
           ElevatedButton.icon(
             onPressed: () => reconnectNotifier.reconnect(savedServerNotifier),
             icon: const Icon(Icons.refresh),
-            label: Text(context.l10n.auto_reconnect_retry ?? '重新搜索'),
+            label: const Text('重新搜索'),
           ),
       ],
     );

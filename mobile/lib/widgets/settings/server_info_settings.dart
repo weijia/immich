@@ -21,7 +21,7 @@ class ServerInfoSettings extends HookConsumerWidget {
       children: [
         // Server info card
         if (savedServer != null)
-          SettingsCard(
+          ServerInfoCard(
             title: '当前服务器',
             subtitle: savedServer.serverName,
             icon: Icons.dns_rounded,
@@ -161,7 +161,7 @@ class ServerInfoSettings extends HookConsumerWidget {
           )
         else
           // No saved server
-          SettingsCard(
+          ServerInfoCard(
             title: '服务器信息',
             subtitle: '未保存服务器',
             icon: Icons.dns_rounded,
@@ -195,7 +195,7 @@ class ServerInfoSettings extends HookConsumerWidget {
           ),
         
         // Auto reconnect section
-        SettingsCard(
+        ServerInfoCard(
           title: '自动重连',
           subtitle: 'IP 变化时自动发现新地址',
           icon: Icons.sync_problem,
@@ -235,14 +235,14 @@ class ServerInfoSettings extends HookConsumerWidget {
   }
 }
 
-/// Simple settings card widget
-class SettingsCard extends StatelessWidget {
+/// Simple settings info card widget
+class ServerInfoCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
   final List<Widget> children;
 
-  const SettingsCard({
+  const ServerInfoCard({
     super.key,
     required this.title,
     required this.subtitle,

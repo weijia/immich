@@ -32,9 +32,10 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
   /// Load saved server from storage
   Future<void> _loadSavedServer() async {
     _log.info('[SavedServerNotifier] Loading saved server');
-    state = await _storageService.getSavedServer();
-    if (state != null) {
-      _log.info('[SavedServerNotifier] Loaded: ${state.serverId}');
+    final savedServer = await _storageService.getSavedServer();
+    state = savedServer;
+    if (savedServer != null) {
+      _log.info('[SavedServerNotifier] Loaded: ${savedServer.serverId}');
     } else {
       _log.info('[SavedServerNotifier] No saved server found');
     }
@@ -106,10 +107,11 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
       return null;
     }
     
-    _log.info('[SavedServerNotifier] Trying to reconnect to: ${state.serverId}');
+    final savedServer = state!;
+    _log.info('[SavedServerNotifier] Trying to reconnect to: ${savedServer.serverId}');
     
     final discoveryService = ServerDiscoveryService();
-    final newUrl = await discoveryService.tryReconnect(state!);
+    final newUrl = await discoveryService.tryReconnect(savedServer);
     
     if (newUrl != null) {
       _log.info('[SavedServerNotifier] Found new URL: $newUrl');
