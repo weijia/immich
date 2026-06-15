@@ -1,6 +1,8 @@
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:immich_mobile/domain/models/server/saved_server.model.dart';
 import 'package:immich_mobile/domain/services/saved_server_storage.service.dart';
+import 'package:immich_mobile/entities/store.entity.dart';
+import 'package:immich_mobile/domain/models/store.model.dart';
 import 'package:immich_mobile/services/api.service.dart';
 import 'package:immich_mobile/services/server_discovery.service.dart';
 import 'package:openapi/api.dart';
@@ -65,11 +67,13 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
   }
 
   /// Update server URL (when IP changes)
+  /// This updates both SavedServer and StoreKey.serverEndpoint
   Future<void> updateServerUrl(String newUrl) async {
     if (state == null) return;
     
     _log.info('[SavedServerNotifier] Updating URL: $newUrl');
     
+    // Update SavedServer storage
     final updated = state!.copyWith(
       serverUrl: newUrl,
       lastConnected: DateTime.now(),
@@ -78,7 +82,15 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
     await _storageService.saveServer(updated);
     state = updated;
     
-    _log.info('[SavedServerNotifier] URL updated');
+    // Update StoreKey.serverEndpoint (used by API calls)
+    await Store.put(StoreKey.serverEndpoint, newUrl);
+    _log.info('[SavedServerNotifier] Updated StoreKey.serverEndpoint to: $newUrl');
+    
+    // Update API service endpoint
+    ApiService().setEndpoint(newUrl);
+    _log.info('[SavedServerNotifier] Updated API service endpoint');
+    
+    _log.info('[SavedServerNotifier] URL updated successfully');
   }
 
   /// Exchange server token after login
