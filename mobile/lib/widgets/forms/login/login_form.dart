@@ -21,6 +21,7 @@ import 'package:immich_mobile/providers/background_sync.provider.dart';
 import 'package:immich_mobile/providers/gallery_permission.provider.dart';
 import 'package:immich_mobile/providers/oauth.provider.dart';
 import 'package:immich_mobile/providers/server_info.provider.dart';
+import 'package:immich_mobile/providers/saved_server.provider.dart';
 import 'package:immich_mobile/providers/view_intent/view_intent_handler.provider.dart';
 import 'package:immich_mobile/providers/websocket.provider.dart';
 import 'package:immich_mobile/repositories/permission.repository.dart';
@@ -114,8 +115,11 @@ class LoginForm extends HookConsumerWidget {
       discoveredServers.value = [];
 
       try {
-        final discovery = ServerDiscoveryService();
-        final servers = await discovery.discoverServers();
+        final savedServer = ref.read(savedServerProvider);
+        final discovery = ref.read(serverDiscoveryProvider);
+        final servers = await discovery.discoverServers(
+          savedServer: savedServer,
+        );
 
         if (servers.isEmpty) {
           ImmichToast.show(
@@ -214,6 +218,14 @@ class LoginForm extends HookConsumerWidget {
       if (serverUrl != null) {
         serverEndpointController.text = serverUrl;
       }
+      
+      // Also check saved server
+      final savedServer = ref.read(savedServerProvider);
+      if (savedServer != null && serverEndpointController.text.isEmpty) {
+        serverEndpointController.text = savedServer.serverUrl;
+        log.info('[LoginForm] Auto-filled saved server URL: ${savedServer.serverUrl}');
+      }
+      
       return null;
     }, []);
 
@@ -308,6 +320,29 @@ class LoginForm extends HookConsumerWidget {
         log.info('[LoginForm] Calling authProvider.notifier.login()');
         final result = await ref.read(authProvider.notifier).login(emailController.text, passwordController.text);
         log.info('[LoginForm] Login result received: userId=${result.userId}, isAdmin=${result.isAdmin}');
+
+        // Save server information after successful login
+        final serverUrl = sanitizeUrl(serverEndpointController.text);
+        final serverInfo = ref.read(serverInfoProvider);
+        log.info('[LoginForm] Saving server info: url=$serverUrl');
+        
+        // Get server ID from discovery response if available
+        String? serverId;
+        for (final server in discoveredServers.value) {
+          if (server.url == serverUrl || server.url == '${serverUrl}/api') {
+            serverId = server.serverId;
+            log.info('[LoginForm] Found server ID from discovery: $serverId');
+            break;
+          }
+        }
+        
+        // Save server info
+        await ref.read(savedServerProvider.notifier).saveServer(
+          serverId: serverId ?? 'unknown-${DateTime.now().millisecondsSinceEpoch}',
+          serverName: 'Immich Server',
+          serverUrl: serverUrl,
+        );
+        log.info('[LoginForm] Server info saved');
 
         if (result.shouldChangePassword && !result.isAdmin) {
           log.info('[LoginForm] User needs to change password, navigating to ChangePasswordRoute');
