@@ -235,9 +235,9 @@ class DiscoveryState {
 
   DiscoveryState({
     this.isDiscovering = false,
-    this.servers = [],
+    List<DiscoveredServer>? servers,
     this.error,
-  });
+  }) : servers = servers ?? [];
 
   DiscoveryState copyWith({
     bool? isDiscovering,
