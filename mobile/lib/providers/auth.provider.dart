@@ -83,16 +83,27 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<LoginResponse> login(String email, String password) async {
     _log.info('[AuthNotifier] login() called with email: $email');
     _log.info('[AuthNotifier] Current basePath: ${_apiService.apiClient.basePath}');
-    
+
     try {
       _log.info('[AuthNotifier] Calling _authService.login()');
       final response = await _authService.login(email, password);
       _log.info('[AuthNotifier] Login response received: accessToken=${response.accessToken}, userId=${response.userId}');
-      
+
       _log.info('[AuthNotifier] Calling saveAuthInfo()');
-      await saveAuthInfo(accessToken: response.accessToken);
+      final ok = await saveAuthInfo(
+        accessToken: response.accessToken,
+        loginResponse: response,
+      );
+      if (!ok) {
+        // Could not resolve/establish the user session (e.g. custom server
+        // missing /users/me and no usable fallback). Roll back the token we
+        // just wrote so we don't leave a half-initialised session behind.
+        _log.severe('[AuthNotifier] Failed to finalise login (could not resolve user)');
+        await Store.delete(StoreKey.accessToken);
+        throw Exception('login_failed_user_info');
+      }
       _log.info('[AuthNotifier] saveAuthInfo() completed');
-      
+
       return response;
     } catch (e, stackTrace) {
       _log.severe('[AuthNotifier] Login error: $e');
@@ -139,7 +150,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> saveAuthInfo({required String accessToken}) async {
+  /// Saves the access token and resolves the current user.
+  ///
+  /// [loginResponse] is optional: when provided (e.g. right after a password
+  /// login) it is used as a fallback to build the local user if the server
+  /// does not implement `/users/me` / `/users/me/preferences` (the case for
+  /// custom servers such as immich-android-server and immich-go-server). This
+  /// makes switching between servers robust instead of failing the whole login.
+  Future<bool> saveAuthInfo({
+    required String accessToken,
+    LoginResponse? loginResponse,
+  }) async {
     await Store.put(StoreKey.accessToken, accessToken);
     await _apiService.updateHeaders();
 
@@ -150,7 +171,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
     // Get the deviceid from the store if it exists, otherwise generate a new one
     String deviceId = Store.tryGet(StoreKey.deviceId) ?? await FlutterUdid.consistentUdid;
-    
+
     // Save deviceId immediately after login, before any API calls
     // This ensures deviceId is available for upload operations
     await Store.put(StoreKey.deviceId, deviceId);
@@ -172,17 +193,42 @@ class AuthNotifier extends StateNotifier<AuthState> {
         _log.severe("Unauthorized access, token likely expired. Logging out.");
         return false;
       }
-      _log.severe("Error getting user information from the server [API EXCEPTION]", stackTrace);
+      // Custom servers may not implement /users/me or /users/me/preferences.
+      // Fall back to the cached user or the login response instead of failing.
+      _log.warning(
+        "Error getting user information from the server, using fallback [API EXCEPTION]: $error",
+      );
     } catch (error, stackTrace) {
-      _log.severe("Error getting user information from the server [CATCH ALL]", error, stackTrace);
+      _log.warning(
+        "Error getting user information from the server, using fallback [CATCH ALL]: $error",
+      );
       dPrint(() => "Error getting user information from the server [CATCH ALL] $error $stackTrace");
     }
 
-    // If the user is null, the login was not successful
-    // and we don't have a local copy of the user from a prior successful login
+    // Fallback for custom servers that don't implement /users/me and/or
+    // /users/me/preferences. The login response already carries the user id,
+    // email, name and admin flag, which is enough to bootstrap the session.
+    if (user == null && loginResponse != null) {
+      _log.info("[AuthNotifier] Building user from login response (server lacks /users/me)");
+      user = UserDto(
+        id: loginResponse.userId,
+        email: loginResponse.userEmail,
+        name: loginResponse.name,
+        isAdmin: loginResponse.isAdmin,
+        updatedAt: DateTime.now(),
+        profileChangedAt: DateTime.now(),
+      );
+    }
+
+    // If the user is still null, the login was not successful and we don't have
+    // a local copy of the user from a prior successful login.
     if (user == null) {
       return false;
     }
+
+    // Persist the resolved user so the session can be resumed after a restart
+    // even when the server does not implement /users/me.
+    await Store.put(StoreKey.currentUser, user);
 
     state = state.copyWith(
       deviceId: deviceId,

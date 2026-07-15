@@ -79,7 +79,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
                       if (onServerSelected != null) {
                         onServerSelected!(server);
                       }
-                      Navigator.of(context).pop();
+                      Navigator.of(context).pop(server);
                     },
                   )),
 

@@ -13,6 +13,7 @@ import 'package:immich_mobile/providers/api.provider.dart';
 import 'package:immich_mobile/providers/background_sync.provider.dart';
 import 'package:immich_mobile/repositories/auth.repository.dart';
 import 'package:immich_mobile/repositories/auth_api.repository.dart';
+import 'package:immich_mobile/domain/services/saved_server_storage.service.dart';
 import 'package:immich_mobile/services/api.service.dart';
 import 'package:immich_mobile/services/network.service.dart';
 import 'package:logging/logging.dart';
@@ -25,6 +26,7 @@ final authServiceProvider = Provider(
     ref.watch(apiServiceProvider),
     ref.watch(networkServiceProvider),
     ref.watch(backgroundSyncProvider),
+    ref.watch(savedServerStorageProvider),
   ),
 );
 
@@ -34,6 +36,7 @@ class AuthService {
   final ApiService _apiService;
   final NetworkService _networkService;
   final BackgroundSyncManager _backgroundSyncManager;
+  final SavedServerStorageService _savedServerStorageService;
   final _log = Logger("AuthService");
 
   AuthService(
@@ -42,6 +45,7 @@ class AuthService {
     this._apiService,
     this._networkService,
     this._backgroundSyncManager,
+    this._savedServerStorageService,
   );
 
   /// Validates the provided server URL by resolving and setting the endpoint.
@@ -130,8 +134,11 @@ class AuthService {
     await _backgroundSyncManager.cancel();
     await Future.wait([
       _authRepository.clearLocalData(),
+      _savedServerStorageService.clearSavedServer(),
       Store.delete(StoreKey.currentUser),
       Store.delete(StoreKey.accessToken),
+      Store.delete(StoreKey.serverUrl),
+      Store.delete(StoreKey.serverEndpoint),
       SettingsRepository.instance.clear(const [
         .networkAutoEndpointSwitching,
         .networkPreferredWifiName,

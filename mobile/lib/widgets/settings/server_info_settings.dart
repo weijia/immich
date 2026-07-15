@@ -5,6 +5,9 @@ import 'package:immich_mobile/extensions/theme_extensions.dart';
 import 'package:immich_mobile/providers/saved_server.provider.dart';
 import 'package:immich_mobile/widgets/dialog/server_discovery_dialog.dart';
 import 'package:immich_mobile/widgets/dialog/auto_reconnect_dialog.dart';
+import 'package:immich_mobile/services/api.service.dart';
+import 'package:immich_mobile/entities/store.entity.dart';
+import 'package:immich_mobile/domain/models/store.model.dart';
 import 'package:logging/logging.dart';
 
 /// Server information settings section
@@ -115,6 +118,15 @@ class ServerInfoSettings extends HookConsumerWidget {
                             serverName: server.name,
                             serverUrl: server.url,
                           );
+                          // Activate the newly discovered server: resolve and switch
+                          // the active endpoint so the app actually connects to it.
+                          try {
+                            await ApiService().resolveAndSetEndpoint(server.url);
+                          } catch (e) {
+                            _log.warning('[ServerInfoSettings] Failed to resolve new endpoint, using raw URL: $e');
+                            await Store.put(StoreKey.serverEndpoint, server.url);
+                            ApiService().setEndpoint(server.url);
+                          }
                         }
                       },
                       icon: const Icon(Icons.search),
