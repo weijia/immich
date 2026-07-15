@@ -23,6 +23,7 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
     final discoveryService = ref.watch(serverDiscoveryProvider);
     final discoveryState = ref.watch(_discoveryStateProvider);
     final discoveryNotifier = ref.watch(_discoveryStateProvider.notifier);
+    final _log = Logger('ServerDiscoveryDialog');
 
     return AlertDialog(
       title: Row(
@@ -76,9 +77,11 @@ class ServerDiscoveryDialog extends HookConsumerWidget {
                     server: server,
                     isSelected: savedServer?.serverId == server.serverId,
                     onTap: () {
+                      _log.info('[UpdateServer] 用户选中发现的服务器: name=${server.name}, url=${server.url}, id=${server.serverId}, verified=${server.isVerified}');
                       if (onServerSelected != null) {
                         onServerSelected!(server);
                       }
+                      _log.info('[UpdateServer] 关闭发现对话框并返回所选服务器: ${server.url}');
                       Navigator.of(context).pop(server);
                     },
                   )),
@@ -295,10 +298,14 @@ Future<DiscoveredServer?> showServerDiscoveryDialog(
   BuildContext context,
   {SavedServer? savedServer}
 ) async {
-  return await showDialog<DiscoveredServer>(
+  final _log = Logger('ServerDiscoveryDialog');
+  _log.info('[UpdateServer] 打开服务器发现对话框 (savedServer=${savedServer?.serverId})');
+  final result = await showDialog<DiscoveredServer>(
     context: context,
     builder: (context) => ServerDiscoveryDialog(
       savedServer: savedServer,
     ),
   );
+  _log.info('[UpdateServer] 发现对话框关闭, 返回: ${result == null ? "null(已取消)" : "${result.name} ${result.url}"}');
+  return result;
 }

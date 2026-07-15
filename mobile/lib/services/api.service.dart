@@ -54,6 +54,7 @@ class ApiService {
   }
 
   setEndpoint(String endpoint) {
+    _log.info('[UpdateServer][ApiService] setEndpoint: $endpoint');
     _apiClient.basePath = endpoint;
     _apiClient.client = NetworkRepository.client;
     usersApi = UsersApi(_apiClient);
@@ -80,11 +81,13 @@ class ApiService {
   }
 
   Future<String> resolveAndSetEndpoint(String serverUrl) async {
+    _log.info('[UpdateServer][ApiService] resolveAndSetEndpoint 开始, 输入: $serverUrl');
     final endpoint = await resolveEndpoint(serverUrl);
     setEndpoint(endpoint);
 
     // Save in local database for next startup
     await Store.put(StoreKey.serverEndpoint, endpoint);
+    _log.info('[UpdateServer][ApiService] resolveAndSetEndpoint 完成, 已写入 StoreKey.serverEndpoint: $endpoint');
     return endpoint;
   }
 
@@ -96,20 +99,26 @@ class ApiService {
   ///  port   - optional (default: based on schema)
   ///  path   - optional
   Future<String> resolveEndpoint(String serverUrl) async {
+    _log.info('[UpdateServer][ApiService] resolveEndpoint 开始, 输入: $serverUrl');
     String url = sanitizeUrl(serverUrl);
+    _log.info('[UpdateServer][ApiService] sanitize 后: $url');
 
     // Check for /.well-known/immich
     final wellKnownEndpoint = await _getWellKnownEndpoint(url);
     if (wellKnownEndpoint.isNotEmpty) {
       url = sanitizeUrl(wellKnownEndpoint);
+      _log.info('[UpdateServer][ApiService] 使用 /.well-known/immich 端点: $url');
     }
 
     // Ensure URL ends with /api for the endpoint
     if (!url.endsWith('/api')) {
       url += '/api';
+      _log.info('[UpdateServer][ApiService] 补全 /api 后缀, 端点: $url');
     }
 
-    if (!await _isEndpointAvailable(url)) {
+    final available = await _isEndpointAvailable(url);
+    _log.info('[UpdateServer][ApiService] 端点可用性检查结果: $available ($url)');
+    if (!available) {
       throw ApiException(503, "Server is not reachable");
     }
 
@@ -125,13 +134,16 @@ class ApiService {
       await setEndpoint(serverUrl);
       await serverInfoApi.pingServer().timeout(const Duration(seconds: 5));
     } on TimeoutException catch (_) {
+      _log.warning('[UpdateServer][ApiService] ping 超时, 端点不可达: $serverUrl');
       return false;
     } on SocketException catch (_) {
+      _log.warning('[UpdateServer][ApiService] Socket 异常, 端点不可达: $serverUrl');
       return false;
     } catch (error, stackTrace) {
       _log.severe("Error while checking server availability", error, stackTrace);
       return false;
     }
+    _log.info('[UpdateServer][ApiService] ping 成功, 端点可达: $serverUrl');
     return true;
   }
 

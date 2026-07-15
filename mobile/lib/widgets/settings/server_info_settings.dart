@@ -107,26 +107,32 @@ class ServerInfoSettings extends HookConsumerWidget {
                     // Re-discover button
                     ElevatedButton.icon(
                       onPressed: () async {
-                        _log.info('[ServerInfoSettings] Re-discover button pressed');
+                        _log.info('[UpdateServer][设置页] 点击"重新发现服务器"; 当前已保存服务器: id=${savedServer.serverId}, url=${savedServer.serverUrl}');
                         final server = await showServerDiscoveryDialog(
                           context,
                           savedServer: savedServer,
                         );
+                        _log.info('[UpdateServer][设置页] 发现返回: ${server == null ? "null(已取消)" : "${server.name} ${server.url}"}');
                         if (server != null) {
+                          final saveId = server.serverId ?? savedServer.serverId;
+                          _log.info('[UpdateServer][设置页] 开始保存: id=$saveId, name=${server.name}, url=${server.url}');
                           await savedServerNotifier.saveServer(
-                            serverId: server.serverId ?? savedServer.serverId,
+                            serverId: saveId,
                             serverName: server.name,
                             serverUrl: server.url,
                           );
-                          // Activate the newly discovered server: resolve and switch
-                          // the active endpoint so the app actually connects to it.
+                          _log.info('[UpdateServer][设置页] 保存完成, 开始激活端点 resolveAndSetEndpoint(${server.url})');
                           try {
-                            await ApiService().resolveAndSetEndpoint(server.url);
+                            final endpoint = await ApiService().resolveAndSetEndpoint(server.url);
+                            _log.info('[UpdateServer][设置页] 端点解析并激活成功: $endpoint');
                           } catch (e) {
-                            _log.warning('[ServerInfoSettings] Failed to resolve new endpoint, using raw URL: $e');
+                            _log.warning('[UpdateServer][设置页] resolveAndSetEndpoint 失败, 回退使用原始 URL: $e');
                             await Store.put(StoreKey.serverEndpoint, server.url);
                             ApiService().setEndpoint(server.url);
+                            _log.info('[UpdateServer][设置页] 端点已设为原始 URL: ${server.url}');
                           }
+                        } else {
+                          _log.info('[UpdateServer][设置页] 未选择服务器, 不做处理');
                         }
                       },
                       icon: const Icon(Icons.search),
@@ -192,9 +198,29 @@ class ServerInfoSettings extends HookConsumerWidget {
                     const SizedBox(height: 16),
                     ElevatedButton.icon(
                       onPressed: () async {
+                        _log.info('[UpdateServer][设置页] 点击"发现服务器"(未保存分支)');
                         final server = await showServerDiscoveryDialog(context);
+                        _log.info('[UpdateServer][设置页] 发现返回: ${server == null ? "null(已取消)" : "${server.name} ${server.url}"}');
                         if (server != null) {
-                          // Navigate to login with discovered server
+                          final saveId = server.serverId ?? server.url;
+                          _log.info('[UpdateServer][设置页] 开始保存: id=$saveId, name=${server.name}, url=${server.url}');
+                          await savedServerNotifier.saveServer(
+                            serverId: saveId,
+                            serverName: server.name,
+                            serverUrl: server.url,
+                          );
+                          _log.info('[UpdateServer][设置页] 保存完成, 开始激活端点 resolveAndSetEndpoint(${server.url})');
+                          try {
+                            final endpoint = await ApiService().resolveAndSetEndpoint(server.url);
+                            _log.info('[UpdateServer][设置页] 端点解析并激活成功: $endpoint');
+                          } catch (e) {
+                            _log.warning('[UpdateServer][设置页] resolveAndSetEndpoint 失败, 回退使用原始 URL: $e');
+                            await Store.put(StoreKey.serverEndpoint, server.url);
+                            ApiService().setEndpoint(server.url);
+                            _log.info('[UpdateServer][设置页] 端点已设为原始 URL: ${server.url}');
+                          }
+                        } else {
+                          _log.info('[UpdateServer][设置页] 未选择服务器, 不做处理');
                         }
                       },
                       icon: const Icon(Icons.search),

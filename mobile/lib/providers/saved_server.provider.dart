@@ -50,8 +50,8 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
     required String serverUrl,
     String? serverToken,
   }) async {
-    _log.info('[SavedServerNotifier] Saving server: $serverId');
-    
+    _log.info('[UpdateServer][SavedServerNotifier] saveServer 开始: id=$serverId, name=$serverName, url=$serverUrl, hasToken=${serverToken != null}');
+
     final server = SavedServer(
       serverId: serverId,
       serverName: serverName,
@@ -59,11 +59,11 @@ class SavedServerNotifier extends StateNotifier<SavedServer?> {
       serverToken: serverToken,
       lastConnected: DateTime.now(),
     );
-    
+
     await _storageService.saveServer(server);
     state = server;
-    
-    _log.info('[SavedServerNotifier] Server saved successfully');
+
+    _log.info('[UpdateServer][SavedServerNotifier] saveServer 完成, state 已更新为: ${server.serverId} / ${server.serverUrl}');
   }
 
   /// Update server URL (when IP changes)
